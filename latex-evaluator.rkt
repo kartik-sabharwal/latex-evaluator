@@ -16,6 +16,7 @@
  cat-ops-set!
  cat-ops-remove!
  Q
+ math
  array
  calc
  sep-by
@@ -105,27 +106,30 @@
        (match quantifier
          [(quote forall) "\\forall"] 
          [(quote exists) "\\exists"]))
-     ;;(define variables (map first bound-variables))
-     ;;(define sorts (map second bound-variables))
-     (define bound-variables-string 
-       (let ([accumulator (open-output-string)])
-         (for/fold ([first? #t])
-                   ([variable bound-variables] ;;variables
-                    ;;[srt sorts]
-                    )
-           (unless first?
-             (display "," accumulator))
-           (display variable accumulator)
-           ;;(display "{:}" accumulator)
-           ;;(display (latex-eval srt) accumulator)
-           #f)
-         (get-output-string accumulator)))
+     (define bound-variables-string
+       (with-output-to-string
+         (thunk
+          (for/fold ([first? #t])
+                    ([bv bound-variables]) ;; bound variable
+            (unless first?
+              (display ","))
+            (match bv
+              [(list var srt) ;; 'variable' 'sort'
+               (display var)
+               (display "{:}")
+               (display (latex-eval srt))]
+              [var ;; 'variable'
+               (display var)])
+            #f))))
      (define body-string (latex-eval body))
      (string-append
       quantifier-string "\\, "
       bound-variables-string ".~"
       body-string)]
 
+    [(list '_ expression subscript)
+
+     (string-append "{" (latex-eval expression) "}_{" (latex-eval subscript) "}")]
     
     [(cons operator arguments)
      #:when (hash-has-key? infix-ops operator)
@@ -236,4 +240,7 @@
 
 (define-syntax-rule (Q expression)
   (latex-eval (quote expression)))
+
+(define-syntax-rule (math expression)
+  (m (latex-eval (quote expression))))
 
