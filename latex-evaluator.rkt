@@ -15,8 +15,11 @@
  delimited-ops-remove!
  cat-ops-set!
  cat-ops-remove!
+ macros-set!
+ macros-remove!
  Q
  math
+ displaymath
  array
  calc
  sep-by
@@ -94,7 +97,16 @@
   (hash-set! cat-ops sym str))
 
 (define (cat-ops-remove! sym str)
-  (hash-ref cat-ops sym))
+  (hash-remove! cat-ops sym))
+
+(define macros
+  (make-hash))
+
+(define (macros-set! sym handler)
+  (hash-set! macros sym handler))
+
+(define (macros-remove! sym)
+  (hash-remove! macros sym))
 
 (define (latex-eval expression)
   (match expression
@@ -189,6 +201,33 @@
           (display (latex-eval argument)))))]
 
 
+    [(cons '$ (cons operator arguments))
+
+     (define accumulator (open-output-string))
+     (display (latex-eval operator) accumulator)
+     (display #\( accumulator)
+     (for/fold ([first? #t])
+               ([argument arguments])
+       (unless first?
+         (display "," accumulator))
+       (display (latex-eval argument) accumulator)
+       #f)
+     (display #\) accumulator)
+     (get-output-string accumulator)]
+
+
+    [(cons operator arguments)
+     #:when (hash-has-key? macros operator)
+
+     ((hash-ref macros operator) (map latex-eval arguments))]
+
+
+    [(? symbol?)
+     #:when (hash-has-key? macros expression)
+
+     ((hash-ref macros expression) null)]
+
+
     [(? symbol?)
      #:when (hash-has-key? consts expression)
 
@@ -243,4 +282,7 @@
 
 (define-syntax-rule (math expression)
   (m (latex-eval (quote expression))))
+
+(define-syntax-rule (displaymath expression)
+  (mp (latex-eval (quote expression))))
 
