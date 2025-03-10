@@ -20,7 +20,10 @@
  array
  calc
  sep-by
- latex-eval)
+ latex-eval
+ macros-set!
+ macros-remove!
+ displaymath)
 
 (define infix-ops
   (make-hash
@@ -94,7 +97,16 @@
   (hash-set! cat-ops sym str))
 
 (define (cat-ops-remove! sym str)
-  (hash-ref cat-ops sym))
+  (hash-remove! cat-ops sym))
+
+(define macros
+  (make-hash))
+
+(define (macros-set! sym handler)
+  (hash-set! macros sym handler))
+
+(define (macros-remove! sym)
+  (hash-remove! macros sym))
 
 (define (latex-eval expression)
   (match expression
@@ -127,10 +139,12 @@
       bound-variables-string ".~"
       body-string)]
 
-    [(list '_ expression subscript)
 
-     (string-append "{" (latex-eval expression) "}_{" (latex-eval subscript) "}")]
+    ;; [(list '_ expression subscript)
+
+    ;;  (string-append "{" (latex-eval expression) "}_{" (latex-eval subscript) "}")]
     
+
     [(cons operator arguments)
      #:when (hash-has-key? infix-ops operator)
 
@@ -188,6 +202,15 @@
           (display "\\ ")
           (display (latex-eval argument)))))]
 
+    [(cons operator arguments)
+     #:when (hash-has-key? macros operator)
+     ((hash-ref macros operator) (map latex-eval arguments))]
+
+
+    [(? symbol?)
+     #:when (hash-has-key? macros expression)
+     ((hash-ref macros expression) null)]
+
 
     [(? symbol?)
      #:when (hash-has-key? consts expression)
@@ -244,3 +267,5 @@
 (define-syntax-rule (math expression)
   (m (latex-eval (quote expression))))
 
+(define-syntax-rule (displaymath expression)
+  (mp (latex-eval (quote expression))))
