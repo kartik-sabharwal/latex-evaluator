@@ -20,12 +20,15 @@
  Q
  math
  displaymath
+ mpe
+ me
  array
  calc
  sep-by
  latex-eval
  macros-set!
  macros-remove!
+ precedence-set!
  displaymath)
 
 (define infix-ops
@@ -111,16 +114,22 @@
 (define (macros-remove! sym)
   (hash-remove! macros sym))
 
+(define precedence
+  (make-hash))
+
+(define (precedence-set! sym num)
+  (hash-set! precedence sym num))
+
 (define (latex-eval expression)
   (match expression
-    [(list (and quantifier (or (quote forall) (quote exists)))
+    [(list (and quantifier (or 'forall '∀ 'exists '∃))
            bound-variables
            body)
 
      (define quantifier-string
        (match quantifier
-         [(quote forall) "\\forall"] 
-         [(quote exists) "\\exists"]))
+         [(or 'forall '∀) "\\forall"] 
+         [(or 'exists '∃) "\\exists"]))
      (define bound-variables-string
        (with-output-to-string
          (thunk
@@ -142,12 +151,7 @@
       bound-variables-string ".~"
       body-string)]
 
-
-    ;; [(list '_ expression subscript)
-
-    ;;  (string-append "{" (latex-eval expression) "}_{" (latex-eval subscript) "}")]
     
-
     [(cons operator arguments)
      #:when (hash-has-key? infix-ops operator)
 
@@ -157,7 +161,18 @@
                ([argument arguments])
        (unless first?
          (display separator accumulator))
-       (display (latex-eval argument) accumulator)
+       (match argument
+         [(cons op _)
+          #:when (or (and (hash-has-key? infix-ops op)
+                          (<= (hash-ref precedence op)
+                              (hash-ref precedence operator)))
+                     (member op '(∀ ∃)))
+          (display "(" accumulator)
+          (display (latex-eval argument) accumulator)
+          (display ")" accumulator)]
+
+         [else
+          (display (latex-eval argument) accumulator)])
        #f)
      (get-output-string accumulator)]
 
@@ -299,3 +314,9 @@
 
 (define-syntax-rule (displaymath expression)
   (mp (latex-eval (quote expression))))
+
+(define (me expr)
+  (m (latex-eval expr)))
+
+(define (mpe expr)
+  (mp (latex-eval expr)))
