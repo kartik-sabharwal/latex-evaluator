@@ -134,7 +134,7 @@
                (display "{:}")
                (display (latex-eval srt))]
               [var ;; 'variable'
-               (display var)])
+               (display (latex-eval var))])
             #f))))
      (define body-string (latex-eval body))
      (string-append
@@ -272,14 +272,14 @@
           (string-join cells "&"))
         "\\\\")))
 
-(define (calc . terms)
+(define (calc op . terms)
   ;; precondition: (not (null? terms))
   (array
    "rl"
    (cons
     (list "" (first terms))
     (for/list ([term (rest terms)])
-      (list "=" term)))))
+      (list op term)))))
 
 (define (sep-by sep . elts) ;; 'separator', 'elements'
   (with-output-to-string
