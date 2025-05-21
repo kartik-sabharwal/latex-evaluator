@@ -6,6 +6,7 @@
 (provide (all-from-out latex-utils/scribble/math latex-utils/scribble/utils)
          infix-ops-set!
          infix-ops-remove!
+         has-infix-op?
          prefix-ops-set!
          prefix-ops-remove!
          consts-set!
@@ -44,6 +45,9 @@
 
 (define (infix-ops-remove! sym)
   (hash-remove! infix-ops sym))
+
+(define (has-infix-op? sym)
+  (hash-has-key? infix-ops sym))
 
 (define prefix-ops
   (make-hash (list (cons (quote plus) "\\text{plus}")
